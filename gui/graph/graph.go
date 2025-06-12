@@ -22,6 +22,7 @@ type axisRange struct {
 	realizedMax float32
 	tickSize    float32
 	numTicks    int
+	zeroHeight  float32
 }
 
 func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, data []float32) {
@@ -34,11 +35,9 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 
 	yRange := g.createYRange(&size, data)
 
-	zeroHeight := linearMap(0, yRange.realizedMin, yRange.realizedMax, size.Height, 0)
+	g.addAxes(&size, &yRange)
 
-	g.addAxes(&size, data, zeroHeight)
-
-	g.addXTicks(&size, data, zeroHeight)
+	g.addXTicks(&size, &yRange, data)
 
 	g.addYTicks(&size, &yRange, data)
 
@@ -62,6 +61,7 @@ func (g *GraphStruct) createYRange(size *fyne.Size, data []float32) axisRange {
 	}
 	realizedMin := yMin - float32(orderMagnitude)
 	realizedMax := yMax + float32(orderMagnitude)
+	zeroHeight := linearMap(0, realizedMin, realizedMax, size.Height, 0)
 	return axisRange{
 		min:         yMin,
 		max:         yMax,
@@ -69,23 +69,24 @@ func (g *GraphStruct) createYRange(size *fyne.Size, data []float32) axisRange {
 		realizedMax: realizedMax,
 		tickSize:    float32(orderMagnitude),
 		numTicks:    int(math.Abs(float64(realizedMax-realizedMin)) / float64(orderMagnitude)),
+		zeroHeight:  zeroHeight,
 	}
 }
 
-func (g *GraphStruct) addAxes(size *fyne.Size, data []float32, zeroHeight float32) {
-	g.xAxis.Position1 = fyne.NewPos(0, zeroHeight)
-	g.xAxis.Position2 = fyne.NewPos(size.Width, zeroHeight)
+func (g *GraphStruct) addAxes(size *fyne.Size, yRange *axisRange) {
+	g.xAxis.Position1 = fyne.NewPos(0, yRange.zeroHeight)
+	g.xAxis.Position2 = fyne.NewPos(size.Width, yRange.zeroHeight)
 	g.yAxis.Position1 = fyne.NewPos(0, 0)
 	g.yAxis.Position2 = fyne.NewPos(0, size.Height)
 }
 
-func (g *GraphStruct) addXTicks(size *fyne.Size, data []float32, zeroHeight float32) {
+func (g *GraphStruct) addXTicks(size *fyne.Size, yRange *axisRange, data []float32) {
 	g.xTicks = []*canvas.Line{}
 	for index := range data {
 		xTick := &canvas.Line{}
 		// TODO: Make tick length relative
-		xTick.Position1 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), zeroHeight+5)
-		xTick.Position2 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), zeroHeight-5)
+		xTick.Position1 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), yRange.zeroHeight+5)
+		xTick.Position2 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), yRange.zeroHeight-5)
 		xTick.StrokeColor = color.Black
 		xTick.StrokeWidth = 2
 		g.xTicks = append(g.xTicks, xTick)
