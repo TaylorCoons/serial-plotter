@@ -2,27 +2,31 @@ package gui
 
 import (
 	"fmt"
-	"math"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
-	"github.com/taylorcoons/serial-plotter/datainputs"
+	"github.com/taylorcoons/serial-plotter/datasources/serial"
 	"github.com/taylorcoons/serial-plotter/gui/graph"
 )
 
 func Main() {
+	serialSource, err := serial.New("/dev/ttyUSB0", 9600)
+	if err != nil {
+		fmt.Println("Failed to create serialSource", err)
+	}
+
+	dataChannel := make(chan float32)
+
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Hello")
 
 	myWindow.Resize(fyne.NewSize(800, 800))
-	ports, err := datainputs.GetPorts()
+	ports, err := serial.GetPorts()
 	if err != nil {
-		fmt.Println("Couldn't get ports")
+		fmt.Println("failed to get ports", err)
 	}
-
 	portSelect := widget.NewSelect(ports, func(value string) {
 		fmt.Println("Port set to ", value)
 	})
@@ -31,25 +35,40 @@ func Main() {
 	baudSelect := widget.NewSelect([]string{"4800", "9600"}, func(value string) {
 		fmt.Println("Baud set to ", value)
 	})
-	dataChannel := make(chan float32)
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
 		stop <- 0
 	})
 	startButton := widget.NewButton("Start", func() {
-		tick := time.NewTicker(time.Millisecond * 250)
+		// tick := time.NewTicker(time.Millisecond * 250)
+		// go func() {
+		// 	counter := 0
+		// 	for {
+		// 		select {
+		// 		case <-tick.C:
+		// 			fmt.Println("Tick")
+		// 			counter++
+		// 			value := 10 * float32(math.Sin(float64(counter%100)*math.Pi/100*2))
+		// 			dataChannel <- float32(value)
+		// 		case <-stop:
+		// 			fmt.Println("Stopping")
+		// 			return
+		// 		}
+		// 	}
+		// }()
 		go func() {
-			counter := 0
 			for {
+				datum, err := serialSource.ReadSource()
 				select {
-				case <-tick.C:
-					fmt.Println("Tick")
-					counter++
-					value := 10 * float32(math.Sin(float64(counter%100)*math.Pi/100*2))
-					dataChannel <- float32(value)
 				case <-stop:
-					fmt.Println("Stopping")
+					fmt.Println("Stopping data collection")
 					return
+				default:
+					if err != nil {
+						fmt.Println("failed to read source", err)
+						return
+					}
+					dataChannel <- datum
 				}
 			}
 		}()
