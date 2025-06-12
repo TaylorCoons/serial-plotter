@@ -32,6 +32,22 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 	g.yAxis.StrokeWidth = 2
 	g.yAxis.StrokeColor = color.Black
 
+	yRange := g.createYRange(&size, data)
+
+	zeroHeight := linearMap(0, yRange.realizedMin, yRange.realizedMax, size.Height, 0)
+
+	g.addAxes(&size, data, zeroHeight)
+
+	g.addXTicks(&size, data, zeroHeight)
+
+	g.addYTicks(&size, &yRange, data)
+
+	g.addLines(&size, &yRange, data)
+
+	g.addGraphObjects(graphContainer)
+}
+
+func (g *GraphStruct) createYRange(size *fyne.Size, data []float32) axisRange {
 	yMin := float32(-10)
 	yMax := float32(10)
 	if len(data) != 0 {
@@ -46,7 +62,7 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 	}
 	realizedMin := yMin - float32(orderMagnitude)
 	realizedMax := yMax + float32(orderMagnitude)
-	yRange := axisRange{
+	return axisRange{
 		min:         yMin,
 		max:         yMax,
 		realizedMin: realizedMin,
@@ -54,13 +70,16 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 		tickSize:    float32(orderMagnitude),
 		numTicks:    int(math.Abs(float64(realizedMax-realizedMin)) / float64(orderMagnitude)),
 	}
+}
 
-	zeroHeight := linearMap(0, yRange.realizedMin, yRange.realizedMax, size.Height, 0)
+func (g *GraphStruct) addAxes(size *fyne.Size, data []float32, zeroHeight float32) {
 	g.xAxis.Position1 = fyne.NewPos(0, zeroHeight)
 	g.xAxis.Position2 = fyne.NewPos(size.Width, zeroHeight)
 	g.yAxis.Position1 = fyne.NewPos(0, 0)
 	g.yAxis.Position2 = fyne.NewPos(0, size.Height)
+}
 
+func (g *GraphStruct) addXTicks(size *fyne.Size, data []float32, zeroHeight float32) {
 	g.xTicks = []*canvas.Line{}
 	for index := range data {
 		xTick := &canvas.Line{}
@@ -71,6 +90,9 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 		xTick.StrokeWidth = 2
 		g.xTicks = append(g.xTicks, xTick)
 	}
+}
+
+func (g *GraphStruct) addYTicks(size *fyne.Size, yRange *axisRange, data []float32) {
 	g.yTicks = []*canvas.Line{}
 	for index := 0; index < yRange.numTicks; index++ {
 		yTick := &canvas.Line{}
@@ -81,6 +103,9 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 		yTick.StrokeWidth = 2
 		g.yTicks = append(g.yTicks, yTick)
 	}
+}
+
+func (g *GraphStruct) addLines(size *fyne.Size, yRange *axisRange, data []float32) {
 	g.lines = []*canvas.Line{}
 	for index := range data {
 		if index == 0 {
@@ -93,9 +118,10 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 		line.StrokeWidth = 1
 		g.lines = append(g.lines, line)
 	}
+}
 
+func (g *GraphStruct) addGraphObjects(graphContainer *fyne.Container) {
 	graphContainer.RemoveAll()
-	// Add graph objects
 	for _, xTick := range g.xTicks {
 		graphContainer.Objects = append(graphContainer.Objects, xTick)
 	}

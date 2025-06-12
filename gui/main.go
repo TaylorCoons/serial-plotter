@@ -20,6 +20,11 @@ func Main() {
 		fmt.Println("Failed to create serialSource", err)
 	}
 
+	transformMap := map[string]pseudo.Transform{
+		"Sine":     pseudo.SinTransform,
+		"Square":   pseudo.SquareTransform,
+		"Sawtooth": pseudo.SawtoothTransform,
+	}
 	pseudoSource := pseudo.New(time.Millisecond*250, pseudo.SawtoothTransform)
 
 	dataChannel := make(chan float32)
@@ -32,35 +37,24 @@ func Main() {
 	if err != nil {
 		fmt.Println("failed to get ports", err)
 	}
+	dataSourcesList := []string{"Serial", "Dummy"}
+	dataSourcesSelect := widget.NewSelect(dataSourcesList, func(value string) {
+		fmt.Println("data sources set to: ", value)
+	})
+	dataSourcesSelect.SetSelectedIndex(0)
 	portSelect := widget.NewSelect(ports, func(value string) {
-		fmt.Println("Port set to ", value)
+		fmt.Println("port set to ", value)
 	})
 	portSelect.PlaceHolder = "Serial Port"
 
 	baudSelect := widget.NewSelect([]string{"4800", "9600"}, func(value string) {
-		fmt.Println("Baud set to ", value)
+		fmt.Println("baud set to ", value)
 	})
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
 		stop <- 0
 	})
 	startButton := widget.NewButton("Start", func() {
-		// tick := time.NewTicker(time.Millisecond * 250)
-		// go func() {
-		// 	counter := 0
-		// 	for {
-		// 		select {
-		// 		case <-tick.C:
-		// 			fmt.Println("Tick")
-		// 			counter++
-		// 			value := 10 * float32(math.Sin(float64(counter%100)*math.Pi/100*2))
-		// 			dataChannel <- float32(value)
-		// 		case <-stop:
-		// 			fmt.Println("Stopping")
-		// 			return
-		// 		}
-		// 	}
-		// }()
 		go func() {
 			// TODO: Select off UI
 			var dataSource datasources.DataSourcer
@@ -71,7 +65,7 @@ func Main() {
 				datum, err := dataSource.ReadSource()
 				select {
 				case <-stop:
-					fmt.Println("Stopping data collection")
+					fmt.Println("stopping data collection")
 					return
 				default:
 					if err != nil {
@@ -86,8 +80,17 @@ func Main() {
 	})
 	baudSelect.PlaceHolder = "Baud Rate"
 	serialOptions := container.NewVBox(portSelect, baudSelect)
+	transformKeys := []string{}
+	for k := range transformMap {
+		transformKeys = append(transformKeys, k)
+	}
+	transformSelect := widget.NewSelect(transformKeys, func(value string) {
+		fmt.Println("changed transform to: ", value)
+	})
+	transformSelect.SetSelectedIndex(0)
+	dummyOptions := container.NewVBox(transformSelect)
 	graphControls := container.NewVBox(startButton, stopButton)
-	options := container.NewHBox(serialOptions, graphControls)
+	options := container.NewGridWithColumns(4, dataSourcesSelect, serialOptions, dummyOptions, graphControls)
 	graphContainer := container.NewWithoutLayout()
 	content := container.NewBorder(options, nil, nil, nil, graphContainer)
 
