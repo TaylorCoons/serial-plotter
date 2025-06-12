@@ -2,11 +2,14 @@ package gui
 
 import (
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/taylorcoons/serial-plotter/datasources"
+	"github.com/taylorcoons/serial-plotter/datasources/pseudo"
 	"github.com/taylorcoons/serial-plotter/datasources/serial"
 	"github.com/taylorcoons/serial-plotter/gui/graph"
 )
@@ -17,10 +20,12 @@ func Main() {
 		fmt.Println("Failed to create serialSource", err)
 	}
 
+	pseudoSource := pseudo.New(time.Millisecond*250, pseudo.SawtoothTransform)
+
 	dataChannel := make(chan float32)
 
 	myApp := app.New()
-	myWindow := myApp.NewWindow("Hello")
+	myWindow := myApp.NewWindow("Serial Plotter")
 
 	myWindow.Resize(fyne.NewSize(800, 800))
 	ports, err := serial.GetPorts()
@@ -57,8 +62,13 @@ func Main() {
 		// 	}
 		// }()
 		go func() {
+			// TODO: Select off UI
+			var dataSource datasources.DataSourcer
+			// For now to change the source put the one you want to use last
+			dataSource = serialSource
+			dataSource = pseudoSource
 			for {
-				datum, err := serialSource.ReadSource()
+				datum, err := dataSource.ReadSource()
 				select {
 				case <-stop:
 					fmt.Println("Stopping data collection")
