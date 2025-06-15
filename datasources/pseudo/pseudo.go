@@ -18,7 +18,7 @@ func SinTransform(index int) float32 {
 }
 
 func SquareTransform(index int) float32 {
-	period := float64(10)
+	period := float64(50)
 	sin := math.Sin(float64(index) * 2 * math.Pi / period)
 	if sin > 0 {
 		return 10

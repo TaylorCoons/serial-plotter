@@ -12,9 +12,13 @@ import (
 	"github.com/taylorcoons/serial-plotter/datasources/pseudo"
 	"github.com/taylorcoons/serial-plotter/datasources/serial"
 	"github.com/taylorcoons/serial-plotter/gui/graph"
+	"github.com/taylorcoons/serial-plotter/transformers"
+	"github.com/taylorcoons/serial-plotter/transformers/passthrough"
+	"github.com/taylorcoons/serial-plotter/transformers/sma"
 )
 
 func Main() {
+	// TODO: Select off of UI
 	serialSource, err := serial.New("/dev/ttyUSB0", 9600)
 	if err != nil {
 		fmt.Println("Failed to create serialSource", err)
@@ -25,7 +29,8 @@ func Main() {
 		"Square":   pseudo.SquareTransform,
 		"Sawtooth": pseudo.SawtoothTransform,
 	}
-	pseudoSource := pseudo.New(time.Millisecond*250, pseudo.SawtoothTransform)
+	// TODO: Select off of UI
+	pseudoSource := pseudo.New(time.Millisecond*250, pseudo.SquareTransform)
 
 	dataChannel := make(chan float32)
 
@@ -99,11 +104,17 @@ func Main() {
 	graphStruct := graph.GraphStruct{}
 	graphStruct.Show(graphContainer)
 	go func() {
+		sma := sma.New(3)
+		passthrough := passthrough.New()
+		// TODO: Select off of UI
+		var transformer transformers.Transformer
+		transformer = sma
+		transformer = passthrough
 		for {
 			value, ok := <-dataChannel
 			if ok {
 				fmt.Println("Appending data")
-				data = append(data, value)
+				data = append(data, transformer.Compute(data, value))
 				graphStruct.Update(graphContainer, data)
 				fyne.Do(func() {
 					graphContainer.Refresh()
@@ -112,5 +123,4 @@ func Main() {
 		}
 	}()
 	myWindow.ShowAndRun()
-
 }
