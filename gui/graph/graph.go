@@ -4,15 +4,17 @@ import (
 	"image/color"
 	"math"
 	"slices"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 )
 
 type GraphStruct struct {
-	xAxis, yAxis   *canvas.Line
-	xTicks, yTicks []*canvas.Line
-	lines          []*canvas.Line
+	xAxis, yAxis     *canvas.Line
+	xTicks, yTicks   []*canvas.Line
+	xLabels, yLabels []*canvas.Text
+	lines            []*canvas.Line
 }
 
 type axisRange struct {
@@ -80,16 +82,34 @@ func (g *GraphStruct) addAxes(size *fyne.Size, yRange *axisRange) {
 	g.yAxis.Position2 = fyne.NewPos(0, size.Height)
 }
 
+func positionXLabel(index int, length int, xLabel *canvas.Text, size *fyne.Size, yRange *axisRange) fyne.Position {
+	xPos := float32(index)*size.Width/float32(length) + xLabel.Size().Width/2
+	yPos := yRange.zeroHeight + 5
+	return fyne.NewPos(xPos, yPos)
+}
+
 func (g *GraphStruct) addXTicks(size *fyne.Size, yRange *axisRange, data []float32) {
 	g.xTicks = []*canvas.Line{}
-	for index := range data {
+	g.xLabels = []*canvas.Text{}
+	xLabelDensity := func(data []float32, xLabelDivisor int, size *fyne.Size) float32 {
+		return float32(len(data)) / float32(xLabelDivisor) / size.Width
+	}
+	xLabelDivisor := 1
+	for xLabelDensity(data, xLabelDivisor, size) > 0.02 {
+		xLabelDivisor++
+	}
+	for index := 0; index < len(data); index += xLabelDivisor {
 		xTick := &canvas.Line{}
+		xLabel := canvas.NewText(strconv.Itoa(index), color.White)
+		xLabel.Alignment = fyne.TextAlignCenter
+		xLabel.Move(positionXLabel(index, len(data), xLabel, size, yRange))
 		// TODO: Make tick length relative
 		xTick.Position1 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), yRange.zeroHeight+5)
 		xTick.Position2 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), yRange.zeroHeight-5)
 		xTick.StrokeColor = color.White
 		xTick.StrokeWidth = 2
 		g.xTicks = append(g.xTicks, xTick)
+		g.xLabels = append(g.xLabels, xLabel)
 	}
 }
 
@@ -125,6 +145,9 @@ func (g *GraphStruct) addGraphObjects(graphContainer *fyne.Container) {
 	graphContainer.RemoveAll()
 	for _, xTick := range g.xTicks {
 		graphContainer.Objects = append(graphContainer.Objects, xTick)
+	}
+	for _, xLabel := range g.xLabels {
+		graphContainer.Objects = append(graphContainer.Objects, xLabel)
 	}
 	for _, yTick := range g.yTicks {
 		graphContainer.Objects = append(graphContainer.Objects, yTick)
