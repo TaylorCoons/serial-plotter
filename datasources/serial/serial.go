@@ -30,8 +30,12 @@ func (s *SerialPort) OpenPort() error {
 		DataBits: 8,
 		StopBits: serial.OneStopBit,
 	}
+	fmt.Println("Opening port...")
+	fmt.Println("name: ", s.portName)
+	fmt.Println("baud: ", s.baud)
 	port, err := serial.Open(s.portName, mode)
 	if err != nil {
+		fmt.Println("Error opening port!!!")
 		return err
 	}
 	s.port = port

@@ -25,6 +25,7 @@ type appState struct {
 	serialSource   *serial.SerialPort
 	dummySource    *pseudo.Pseudo
 	transform      transformers.Transformer
+	window         fyne.Window
 }
 
 func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummySourceContainer *fyne.Container) *fyne.Container {
@@ -54,9 +55,6 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 		fmt.Println("failed to get ports", err)
 	}
 	portName := ""
-	if len(ports) > 0 {
-		portName = ports[0]
-	}
 	defaultBaudIndex := 1
 	baudOptions := []string{"4800", "9600"}
 	defaultBaudValue, err := strconv.Atoi(baudOptions[defaultBaudIndex])
@@ -123,6 +121,19 @@ func (a *appState) TransformOptions() *fyne.Container {
 
 }
 
+func ErrorModal(message string, window fyne.Window) {
+	text := canvas.NewText(message, color.Black)
+	var popUp *widget.PopUp
+	closeButton := widget.NewButton("Close", func() {
+		popUp.Hide()
+	})
+	container := container.NewVBox(text, closeButton)
+	popUp = widget.NewModalPopUp(container, window.Canvas())
+	fyne.Do(func() {
+		popUp.Show()
+	})
+}
+
 func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
@@ -136,11 +147,12 @@ func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *
 			case "Dummy":
 				dataSource = a.dummySource
 			case "Serial":
+				fmt.Println("Opening serial port")
 				err := a.serialSource.OpenPort()
 				if err != nil {
-					text := canvas.NewText("ERROR", color.Black)
-					popUpContent := container.NewHBox(text)
-					widget.NewModalPopUp(popUpContent, window.Canvas())
+					fmt.Println("error opening port ", err)
+					ErrorModal(fmt.Sprintf("Error opening port %s", err), a.window)
+					return
 				}
 				dataSource = a.serialSource
 			}
@@ -148,6 +160,7 @@ func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *
 				datum, err := dataSource.ReadSource()
 				if err != nil {
 					fmt.Println("failed to read source", err)
+					ErrorModal(fmt.Sprintf("Failed to read data source %s", err), a.window)
 					return
 				}
 				select {
@@ -171,6 +184,7 @@ func Main() {
 
 	myApp := app.New()
 	myWindow := myApp.NewWindow("Serial Plotter")
+	appState.window = myWindow
 
 	myWindow.Resize(fyne.NewSize(800, 800))
 
