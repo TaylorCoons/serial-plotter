@@ -123,7 +123,7 @@ func (a *appState) TransformOptions() *fyne.Container {
 
 }
 
-func (a *appState) controlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
+func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
 		fmt.Println("Stop pressed")
@@ -179,7 +179,7 @@ func Main() {
 		fmt.Println("failed to create serial source options")
 	}
 	dummyOptions := appState.DummySourceOptions()
-	controlsPanel := appState.controlsPanel(dataChannel, myWindow)
+	controlsPanel := appState.ControlsPanel(dataChannel, myWindow)
 	dataSourcesPanel := appState.DataSourcesPanel(serialOptions, dummyOptions)
 	transformOptions := appState.TransformOptions()
 	options := container.NewGridWithColumns(4, dataSourcesPanel, serialOptions, dummyOptions, transformOptions, controlsPanel)
