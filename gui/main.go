@@ -134,34 +134,47 @@ func ErrorModal(message string, window fyne.Window) {
 	})
 }
 
+func (a *appState) InitializeSource() (datasources.DataSourcer, error) {
+	switch a.dataSourceType {
+	case "Dummy":
+		return a.dummySource, nil
+	case "Serial":
+		fmt.Println("Opening serial port")
+		err := a.serialSource.OpenPort()
+		if err != nil {
+			fmt.Println("error opening port ", err)
+			ErrorModal(fmt.Sprintf("Error opening port %s", err), a.window)
+			return nil, err
+		}
+		return a.serialSource, nil
+	}
+	return nil, fmt.Errorf("unknown data source selected")
+}
+
+func (a *appState) CloseDataSource() error {
+	switch a.dataSourceType {
+	case "Serial":
+		err := a.serialSource.Close()
+		if err != nil {
+			ErrorModal(fmt.Sprintf("Error closing port %s", err), a.window)
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
 		fmt.Println("Stop pressed")
-		switch a.dataSourceType {
-		case "Serial":
-			err := a.serialSource.Close()
-			if err != nil {
-				ErrorModal(fmt.Sprintf("Error closing port %s", err), a.window)
-			}
-		}
 		stop <- 0
 	})
 	startButton := widget.NewButton("Start", func() {
 		go func() {
-			var dataSource datasources.DataSourcer
-			switch a.dataSourceType {
-			case "Dummy":
-				dataSource = a.dummySource
-			case "Serial":
-				fmt.Println("Opening serial port")
-				err := a.serialSource.OpenPort()
-				if err != nil {
-					fmt.Println("error opening port ", err)
-					ErrorModal(fmt.Sprintf("Error opening port %s", err), a.window)
-					return
-				}
-				dataSource = a.serialSource
+			dataSource, err := a.InitializeSource()
+			if err != nil {
+				fmt.Println("Failed to initialize data source", err)
+				return
 			}
 			for {
 				datum, err := dataSource.ReadSource()
@@ -173,6 +186,10 @@ func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *
 				select {
 				case <-stop:
 					fmt.Println("stopping data collection")
+					err := a.CloseDataSource()
+					if err != nil {
+						fmt.Println("failed to close data source", err)
+					}
 					return
 				default:
 					dataChannel <- datum
