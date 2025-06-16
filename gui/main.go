@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"image/color"
+	"slices"
 	"strconv"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/taylorcoons/serial-plotter/datasources/dummy"
 	"github.com/taylorcoons/serial-plotter/datasources/serial"
 	"github.com/taylorcoons/serial-plotter/gui/graph"
+	"github.com/taylorcoons/serial-plotter/gui/preference"
 	"github.com/taylorcoons/serial-plotter/transformers"
 	"github.com/taylorcoons/serial-plotter/transformers/passthrough"
 	"github.com/taylorcoons/serial-plotter/transformers/sma"
@@ -27,6 +29,7 @@ type appState struct {
 	transform      transformers.Transformer
 	window         fyne.Window
 	data           []float32
+	app            fyne.App
 }
 
 func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummySourceContainer *fyne.Container) *fyne.Container {
@@ -40,12 +43,13 @@ func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummy
 		case "Dummy":
 			dummySourceContainer.Show()
 		}
+		a.app.Preferences().SetString(preference.DataSource.String(), value)
 		a.dataSourceType = value
 		fmt.Println("datasourcetype set to: ", value)
 	})
-	dataSourcesDefaultIndex := 0
-	dataSourcesSelect.SetSelectedIndex(dataSourcesDefaultIndex)
-	a.dataSourceType = dataSourcesList[dataSourcesDefaultIndex]
+	selected := a.app.Preferences().StringWithFallback(preference.DataSource.String(), "Dummy")
+	dataSourcesSelect.SetSelected(selected)
+	a.dataSourceType = selected
 	dataSourcesContainer := container.NewVBox(dataSourcesSelect)
 	return dataSourcesContainer
 }
@@ -55,19 +59,27 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 	if err != nil {
 		fmt.Println("failed to get ports", err)
 	}
-	portName := ""
-	defaultBaudIndex := 1
-	baudOptions := []string{"4800", "9600"}
-	defaultBaudValue, err := strconv.Atoi(baudOptions[defaultBaudIndex])
-	a.serialSource = serial.New(portName, defaultBaudValue)
-	portSelect := widget.NewSelect(ports, func(value string) {
-		a.serialSource.SetPortName(value)
-		fmt.Println("port set to ", value)
-	})
-	portSelect.PlaceHolder = "Serial Port"
+	defaultPort := a.app.Preferences().StringWithFallback(preference.PortName.String(), "")
+	if !slices.Contains(ports, defaultPort) {
+		defaultPort = ""
+	}
+	baudOptions := serial.BaudOptions()
+	defaultBaud := a.app.Preferences().StringWithFallback(preference.Baud.String(), "9600")
+	defaultBaudValue, err := strconv.Atoi(defaultBaud)
 	if err != nil {
 		fmt.Println("failed to parse baud option", err)
 		return nil, err
+	}
+	a.serialSource = serial.New(defaultPort, defaultBaudValue)
+	portSelect := widget.NewSelect(ports, func(value string) {
+		a.serialSource.SetPortName(value)
+		a.app.Preferences().SetString(preference.PortName.String(), value)
+		fmt.Println("port set to ", value)
+	})
+	if defaultPort != "" {
+		portSelect.SetSelected(defaultPort)
+	} else {
+		portSelect.PlaceHolder = "Serial Port"
 	}
 	baudSelect := widget.NewSelect(baudOptions, func(value string) {
 		baudValue, err := strconv.Atoi(value)
@@ -76,9 +88,10 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 			return
 		}
 		a.serialSource.SetBaud(baudValue)
+		a.app.Preferences().SetString(preference.Baud.String(), value)
 		fmt.Println("baud set to ", value)
 	})
-	baudSelect.SetSelectedIndex(defaultBaudIndex)
+	baudSelect.SetSelected(defaultBaud)
 	serialOptions := container.NewVBox(portSelect, baudSelect)
 	return serialOptions, nil
 }
@@ -90,18 +103,18 @@ func (a *appState) DummySourceOptions() *fyne.Container {
 		"Sawtooth": dummy.SawtoothFunction,
 		"Constant": dummy.ConstantFunction,
 	}
-	defaultFunctionIndex := 0
 	functionKeys := []string{}
 	for k := range functionMap {
 		functionKeys = append(functionKeys, k)
 	}
-	defaultFunction := functionMap[functionKeys[defaultFunctionIndex]]
-	a.dummySource = dummy.New(time.Millisecond*250, defaultFunction)
+	selectedFunction := a.app.Preferences().StringWithFallback(preference.Function.String(), "Sine")
+	a.dummySource = dummy.New(time.Millisecond*250, functionMap[selectedFunction])
 	functionSelect := widget.NewSelect(functionKeys, func(value string) {
 		a.dummySource.SetFunction(functionMap[value])
+		a.app.Preferences().SetString(preference.Function.String(), value)
 		fmt.Println("changed function to: ", value)
 	})
-	functionSelect.SetSelectedIndex(defaultFunctionIndex)
+	functionSelect.SetSelected(selectedFunction)
 	return container.NewVBox(functionSelect)
 }
 
@@ -110,17 +123,17 @@ func (a *appState) TransformOptions() *fyne.Container {
 		"None":                  passthrough.New(),
 		"Simple Moving Average": sma.New(3),
 	}
-	defaultTransformIndex := 0
 	transformKeys := []string{}
 	for k := range transformMap {
 		transformKeys = append(transformKeys, k)
 	}
+	selected := a.app.Preferences().StringWithFallback(preference.Transform.String(), "None")
 	transformSelect := widget.NewSelect(transformKeys, func(value string) {
 		a.transform = transformMap[value]
+		a.app.Preferences().SetString(preference.Transform.String(), value)
 	})
-	transformSelect.SetSelectedIndex(defaultTransformIndex)
+	transformSelect.SetSelected(selected)
 	return container.NewVBox(transformSelect)
-
 }
 
 func ErrorModal(message string, window fyne.Window) {
@@ -224,27 +237,26 @@ func Main() {
 	dataChannel := make(chan float32)
 	clearChannel := make(chan int)
 
-	appState := &appState{}
+	app := app.New()
+	appState := &appState{app: app}
+	window := app.NewWindow("Serial Plotter")
+	appState.window = window
 
-	myApp := app.New()
-	myWindow := myApp.NewWindow("Serial Plotter")
-	appState.window = myWindow
-
-	myWindow.Resize(fyne.NewSize(800, 800))
+	window.Resize(fyne.NewSize(800, 800))
 
 	serialOptions, err := appState.SerialSourceOptions()
 	if err != nil {
 		fmt.Println("failed to create serial source options")
 	}
 	dummyOptions := appState.DummySourceOptions()
-	controlsPanel := appState.ControlsPanel(dataChannel, clearChannel, myWindow)
+	controlsPanel := appState.ControlsPanel(dataChannel, clearChannel, window)
 	dataSourcesPanel := appState.DataSourcesPanel(serialOptions, dummyOptions)
 	transformOptions := appState.TransformOptions()
 	options := container.NewGridWithColumns(4, dataSourcesPanel, serialOptions, dummyOptions, transformOptions, controlsPanel)
 	graphContainer := container.NewWithoutLayout()
 	content := container.NewBorder(options, nil, nil, nil, graphContainer)
 
-	myWindow.SetContent(content)
+	window.SetContent(content)
 	appState.data = []float32{}
 	graphStruct := graph.GraphStruct{}
 	graphStruct.Show(graphContainer)
@@ -264,5 +276,5 @@ func Main() {
 			})
 		}
 	}()
-	myWindow.ShowAndRun()
+	window.ShowAndRun()
 }
