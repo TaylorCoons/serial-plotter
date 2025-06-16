@@ -138,6 +138,13 @@ func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
 		fmt.Println("Stop pressed")
+		switch a.dataSourceType {
+		case "Serial":
+			err := a.serialSource.Close()
+			if err != nil {
+				ErrorModal(fmt.Sprintf("Error closing port %s", err), a.window)
+			}
+		}
 		stop <- 0
 	})
 	startButton := widget.NewButton("Start", func() {

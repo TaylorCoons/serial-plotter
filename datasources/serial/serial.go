@@ -88,8 +88,7 @@ func (s *SerialPort) ReadSource() (float32, error) {
 	// TODO: Figure out how to stop whatever is going on here
 	bytesRead, err := s.readPort(s.buff)
 	if err != nil {
-		fmt.Println("failed to read port")
-		fmt.Println("TODO: Figure out how to handle this error")
+		fmt.Println("failed to read port", err)
 		return 0, err
 	}
 	// fmt.Println("Buff: ", string(buff[:bytesRead]))
@@ -100,4 +99,12 @@ func (s *SerialPort) ReadSource() (float32, error) {
 	}
 	fmt.Println("Datum: ", datum)
 	return datum, err
+}
+
+func (s *SerialPort) Close() error {
+	err := s.port.Close()
+	if err != nil {
+		fmt.Println("failed to close serial port", err)
+	}
+	return err
 }
