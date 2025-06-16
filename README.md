@@ -5,7 +5,7 @@
 
 ## Purpose
 
-The arduino serial plotter for the newer versions has had a sever regression including:
+The arduino serial plotter for the newer versions have had a sever regression including:
  - Allowing only 50 datapoints to be displayed compared to the previous 200
  - Not releasing the serial port resources when the serial plotter is closed
  - Not storing the board type and baud as a user preference
@@ -13,11 +13,10 @@ The arduino serial plotter for the newer versions has had a sever regression inc
 I use the serial plotter when helping write and debug arduino scripts and with the new arduino IDE I spend a lot of time on repetitive steps. I also would like more than 50 data points displayed at a time. This application is to help overcome this downfalls. 
 
 ## Features
-
-  - No software defined limit on data points plotted (as many as the hardware can handle).
-  - Serial port resource is released when the application is not graphing (allowing other applications to upload)
-  - Mobile friendly -- this allows you to view the serial data from an arduino with your phone instead of dragging a laptop around!
-  - Filtering functions -- apply causal filters to help with data plotted from noisy sensors
+ - No software defined limit on data points plotted (as many as the hardware can handle).
+ - Serial port resource is released when the application is not graphing (allowing other applications to upload)
+ - Mobile friendly -- this allows you to view the serial data from an arduino with your phone instead of dragging a laptop around!
+ - Filtering functions -- apply causal filters to help with data plotted from noisy sensors
 
 
 ## Development
