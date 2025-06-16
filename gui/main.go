@@ -24,6 +24,7 @@ type appState struct {
 	dataSourceType string
 	serialSource   *serial.SerialPort
 	dummySource    *pseudo.Pseudo
+	transform      transformers.Transformer
 }
 
 func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummySourceContainer *fyne.Container) *fyne.Container {
@@ -104,6 +105,24 @@ func (a *appState) DummySourceOptions() *fyne.Container {
 	return container.NewVBox(functionSelect)
 }
 
+func (a *appState) TransformOptions() *fyne.Container {
+	transformMap := map[string]transformers.Transformer{
+		"None":                  passthrough.New(),
+		"Simple Moving Average": sma.New(3),
+	}
+	defaultTransformIndex := 0
+	transformKeys := []string{}
+	for k := range transformMap {
+		transformKeys = append(transformKeys, k)
+	}
+	transformSelect := widget.NewSelect(transformKeys, func(value string) {
+		a.transform = transformMap[value]
+	})
+	transformSelect.SetSelectedIndex(defaultTransformIndex)
+	return container.NewVBox(transformSelect)
+
+}
+
 func (a *appState) controlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
@@ -162,7 +181,8 @@ func Main() {
 	dummyOptions := appState.DummySourceOptions()
 	controlsPanel := appState.controlsPanel(dataChannel, myWindow)
 	dataSourcesPanel := appState.DataSourcesPanel(serialOptions, dummyOptions)
-	options := container.NewGridWithColumns(3, dataSourcesPanel, serialOptions, dummyOptions, controlsPanel)
+	transformOptions := appState.TransformOptions()
+	options := container.NewGridWithColumns(4, dataSourcesPanel, serialOptions, dummyOptions, transformOptions, controlsPanel)
 	graphContainer := container.NewWithoutLayout()
 	content := container.NewBorder(options, nil, nil, nil, graphContainer)
 
@@ -171,17 +191,11 @@ func Main() {
 	graphStruct := graph.GraphStruct{}
 	graphStruct.Show(graphContainer)
 	go func() {
-		sma := sma.New(3)
-		passthrough := passthrough.New()
-		// TODO: Select off of UI
-		var transformer transformers.Transformer
-		transformer = sma
-		transformer = passthrough
 		for {
 			value, ok := <-dataChannel
 			if ok {
 				fmt.Println("Appending data")
-				data = append(data, transformer.Compute(data, value))
+				data = append(data, appState.transform.Compute(data, value))
 				graphStruct.Update(graphContainer, data)
 				fyne.Do(func() {
 					graphContainer.Refresh()
