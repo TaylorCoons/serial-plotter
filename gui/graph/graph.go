@@ -29,9 +29,9 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 	g.xAxis = &canvas.Line{}
 	g.yAxis = &canvas.Line{}
 	g.xAxis.StrokeWidth = 2
-	g.xAxis.StrokeColor = color.Black
+	g.xAxis.StrokeColor = color.White
 	g.yAxis.StrokeWidth = 2
-	g.yAxis.StrokeColor = color.Black
+	g.yAxis.StrokeColor = color.White
 
 	yRange := g.createYRange(&size, data)
 
@@ -87,7 +87,7 @@ func (g *GraphStruct) addXTicks(size *fyne.Size, yRange *axisRange, data []float
 		// TODO: Make tick length relative
 		xTick.Position1 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), yRange.zeroHeight+5)
 		xTick.Position2 = fyne.NewPos(float32(index)*size.Width/float32(len(data)), yRange.zeroHeight-5)
-		xTick.StrokeColor = color.Black
+		xTick.StrokeColor = color.White
 		xTick.StrokeWidth = 2
 		g.xTicks = append(g.xTicks, xTick)
 	}
@@ -100,7 +100,7 @@ func (g *GraphStruct) addYTicks(size *fyne.Size, yRange *axisRange, data []float
 		// TODO: Make this tick length relative
 		yTick.Position1 = fyne.NewPos(0, linearMap(float32(index), 0, float32(yRange.numTicks), size.Height, 0))
 		yTick.Position2 = fyne.NewPos(5, linearMap(float32(index), 0, float32(yRange.numTicks), size.Height, 0))
-		yTick.StrokeColor = color.Black
+		yTick.StrokeColor = color.White
 		yTick.StrokeWidth = 2
 		g.yTicks = append(g.yTicks, yTick)
 	}
@@ -115,7 +115,7 @@ func (g *GraphStruct) addLines(size *fyne.Size, yRange *axisRange, data []float3
 		line := &canvas.Line{}
 		line.Position1 = fyne.NewPos(linearMap(float32(index-1), 0, float32(len(data)), 0, size.Width), linearMap(data[index-1], yRange.realizedMin, yRange.realizedMax, size.Height, 0))
 		line.Position2 = fyne.NewPos(linearMap(float32(index), 0, float32(len(data)), 0, size.Width), linearMap(data[index], yRange.realizedMin, yRange.realizedMax, size.Height, 0))
-		line.StrokeColor = color.Black
+		line.StrokeColor = color.White
 		line.StrokeWidth = 1
 		g.lines = append(g.lines, line)
 	}

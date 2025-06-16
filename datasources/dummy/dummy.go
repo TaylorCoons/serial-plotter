@@ -14,7 +14,7 @@ type Dummy struct {
 }
 
 func ConstantFunction(index int) float32 {
-	return 10
+	return 8
 }
 
 func SinFunction(index int) float32 {
