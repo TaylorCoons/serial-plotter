@@ -13,12 +13,12 @@ Ideas:
  Stuff TODO:
  - [ ] rename pseudo source to dummy source
  - [x] rename pseudo.Transform to pseudo.Function
- - [ ] Add clear button to reset data
+ - [x] Add clear button to reset data
  - [ ] Have selected options persist when re-opening application
 
 
 Bugs to FIX:
  - [ ] Fix Y axis display when the data range is zero
- - [ ] Don't let the user press start twice
- - [ ] Gracefully handle serial port errors if port can't be opened
+ - [x] Don't let the user press start twice
+ - [x] Gracefully handle serial port errors if port can't be opened
 
