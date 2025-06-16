@@ -26,6 +26,7 @@ type appState struct {
 	dummySource    *pseudo.Pseudo
 	transform      transformers.Transformer
 	window         fyne.Window
+	data           []float32
 }
 
 func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummySourceContainer *fyne.Container) *fyne.Container {
@@ -163,7 +164,7 @@ func (a *appState) CloseDataSource() error {
 	return nil
 }
 
-func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
+func (a *appState) ControlsPanel(dataChannel chan float32, clearChannel chan int, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
 	var startButtonContainer *fyne.Container
 	var stopButtonContainer *fyne.Container
@@ -206,17 +207,21 @@ func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *
 		}()
 		fmt.Println("Start pressed")
 	})
+	clearButton := widget.NewButton("Clear", func() {
+		clearChannel <- 0
+	})
 	startButton.Importance = widget.LowImportance
 	stopButton.Importance = widget.LowImportance
-	startButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{0, 255, 0, 255}), startButton)
-	stopButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{255, 0, 0, 255}), stopButton)
+	startButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{0, 255, 0, 127}), startButton)
+	stopButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{255, 0, 0, 127}), stopButton)
 	stopButtonContainer.Hide()
 
-	return container.NewStack(startButtonContainer, stopButtonContainer)
+	return container.NewVBox(startButtonContainer, stopButtonContainer, clearButton)
 }
 
 func Main() {
 	dataChannel := make(chan float32)
+	clearChannel := make(chan int)
 
 	appState := &appState{}
 
@@ -231,7 +236,7 @@ func Main() {
 		fmt.Println("failed to create serial source options")
 	}
 	dummyOptions := appState.DummySourceOptions()
-	controlsPanel := appState.ControlsPanel(dataChannel, myWindow)
+	controlsPanel := appState.ControlsPanel(dataChannel, clearChannel, myWindow)
 	dataSourcesPanel := appState.DataSourcesPanel(serialOptions, dummyOptions)
 	transformOptions := appState.TransformOptions()
 	options := container.NewGridWithColumns(4, dataSourcesPanel, serialOptions, dummyOptions, transformOptions, controlsPanel)
@@ -239,20 +244,23 @@ func Main() {
 	content := container.NewBorder(options, nil, nil, nil, graphContainer)
 
 	myWindow.SetContent(content)
-	data := []float32{}
+	appState.data = []float32{}
 	graphStruct := graph.GraphStruct{}
 	graphStruct.Show(graphContainer)
 	go func() {
 		for {
-			value, ok := <-dataChannel
-			if ok {
+			select {
+			case value := <-dataChannel:
 				fmt.Println("Appending data")
-				data = append(data, appState.transform.Compute(data, value))
-				graphStruct.Update(graphContainer, data)
-				fyne.Do(func() {
-					graphContainer.Refresh()
-				})
+				appState.data = append(appState.data, appState.transform.Compute(appState.data, value))
+			case <-clearChannel:
+				fmt.Println("Clearing data")
+				appState.data = []float32{}
 			}
+			graphStruct.Update(graphContainer, appState.data)
+			fyne.Do(func() {
+				graphContainer.Refresh()
+			})
 		}
 	}()
 	myWindow.ShowAndRun()
