@@ -30,7 +30,7 @@ func SquareTransform(index int) float32 {
 func SawtoothTransform(index int) float32 {
 	period := 10.0
 	percent := float64(index) / period
-	return float32(2 * (percent - math.Floor(0.5+percent)))
+	return 10 * float32(2*(percent-math.Floor(0.5+percent)))
 }
 
 func New(delay time.Duration, transform Transform) *Pseudo {
@@ -39,6 +39,10 @@ func New(delay time.Duration, transform Transform) *Pseudo {
 		delay:     delay,
 		transform: transform,
 	}
+}
+
+func (p *Pseudo) SetTransform(transform Transform) {
+	p.transform = transform
 }
 
 func (p *Pseudo) ReadSource() (float32, error) {

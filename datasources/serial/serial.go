@@ -23,7 +23,7 @@ func GetPorts() ([]string, error) {
 	return portNames, nil
 }
 
-func (s *SerialPort) openPort() error {
+func (s *SerialPort) OpenPort() error {
 	mode := &serial.Mode{
 		BaudRate: s.baud,
 		Parity:   serial.NoParity,
@@ -36,6 +36,14 @@ func (s *SerialPort) openPort() error {
 	}
 	s.port = port
 	return nil
+}
+
+func (s *SerialPort) SetPortName(portName string) {
+	s.portName = portName
+}
+
+func (s *SerialPort) SetBaud(baud int) {
+	s.baud = baud
 }
 
 func (s *SerialPort) readPort(data []byte) (int, error) {
@@ -63,18 +71,13 @@ func parseData(raw string) (float32, error) {
 
 }
 
-func New(portName string, baud int) (*SerialPort, error) {
+func New(portName string, baud int) *SerialPort {
 	s := &SerialPort{
 		portName: portName,
 		baud:     baud,
 		buff:     make([]byte, 255),
 	}
-	err := s.openPort()
-	if err != nil {
-		fmt.Println("Failed to open serial port: ", err)
-		return nil, err
-	}
-	return s, nil
+	return s
 }
 
 func (s *SerialPort) ReadSource() (float32, error) {
