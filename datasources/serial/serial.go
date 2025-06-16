@@ -55,12 +55,9 @@ func (s *SerialPort) OpenPort() error {
 		DataBits: 8,
 		StopBits: serial.OneStopBit,
 	}
-	fmt.Println("Opening port...")
-	fmt.Println("name: ", s.portName)
-	fmt.Println("baud: ", s.baud)
 	port, err := serial.Open(s.portName, mode)
 	if err != nil {
-		fmt.Println("Error opening port!!!")
+		fmt.Println("error opening port: ", err)
 		return err
 	}
 	s.port = port
@@ -86,6 +83,11 @@ func (s *SerialPort) readPort(data []byte) (int, error) {
 func parseData(raw string) (float32, error) {
 	expression := regexp.MustCompile(`\s*(?P<name>[^:]+):\s*(?P<value>[\d\.]+)`)
 	match := expression.FindStringSubmatch(raw)
+	if match == nil {
+		return 0, &ParseError{
+			msg: fmt.Sprintf("no match found for (%s)", raw),
+		}
+	}
 	result := make(map[string]string)
 	for i, name := range expression.SubexpNames() {
 		if i != 0 && name != "" {
@@ -94,7 +96,9 @@ func parseData(raw string) (float32, error) {
 	}
 	datum, err := strconv.ParseFloat(result["value"], 32)
 	if err != nil {
-		return 0, err
+		return 0, &ParseError{
+			msg: fmt.Sprintf("could not convert match (%s) to float", raw),
+		}
 	}
 	return float32(datum), nil
 
@@ -122,7 +126,6 @@ func (s *SerialPort) ReadSource() (float32, error) {
 		fmt.Println("failed to parse data", err)
 		return 0, err
 	}
-	fmt.Println("Datum: ", datum)
 	return datum, err
 }
 
