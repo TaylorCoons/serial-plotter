@@ -2,11 +2,13 @@ package gui
 
 import (
 	"fmt"
+	"image/color"
 	"strconv"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/taylorcoons/serial-plotter/datasources"
@@ -82,27 +84,27 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 }
 
 func (a *appState) DummySourceOptions() *fyne.Container {
-	transformMap := map[string]pseudo.Transform{
-		"Sine":     pseudo.SinTransform,
-		"Square":   pseudo.SquareTransform,
-		"Sawtooth": pseudo.SawtoothTransform,
+	functionMap := map[string]pseudo.Function{
+		"Sine":     pseudo.SinFunction,
+		"Square":   pseudo.SquareFunction,
+		"Sawtooth": pseudo.SawtoothFunction,
 	}
-	defaultTransformIndex := 0
-	transformKeys := []string{}
-	for k := range transformMap {
-		transformKeys = append(transformKeys, k)
+	defaultFunctionIndex := 0
+	functionKeys := []string{}
+	for k := range functionMap {
+		functionKeys = append(functionKeys, k)
 	}
-	defaultTransform := transformMap[transformKeys[defaultTransformIndex]]
-	a.dummySource = pseudo.New(time.Millisecond*250, defaultTransform)
-	transformSelect := widget.NewSelect(transformKeys, func(value string) {
-		a.dummySource.SetTransform(transformMap[value])
-		fmt.Println("changed transform to: ", value)
+	defaultFunction := functionMap[functionKeys[defaultFunctionIndex]]
+	a.dummySource = pseudo.New(time.Millisecond*250, defaultFunction)
+	functionSelect := widget.NewSelect(functionKeys, func(value string) {
+		a.dummySource.SetFunction(functionMap[value])
+		fmt.Println("changed function to: ", value)
 	})
-	transformSelect.SetSelectedIndex(defaultTransformIndex)
-	return container.NewVBox(transformSelect)
+	functionSelect.SetSelectedIndex(defaultFunctionIndex)
+	return container.NewVBox(functionSelect)
 }
 
-func (a *appState) controlsPanel(dataChannel chan float32) *fyne.Container {
+func (a *appState) controlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
 	stopButton := widget.NewButton("Stop", func() {
 		fmt.Println("Stop pressed")
@@ -115,20 +117,25 @@ func (a *appState) controlsPanel(dataChannel chan float32) *fyne.Container {
 			case "Dummy":
 				dataSource = a.dummySource
 			case "Serial":
-				a.serialSource.OpenPort()
+				err := a.serialSource.OpenPort()
+				if err != nil {
+					text := canvas.NewText("ERROR", color.Black)
+					popUpContent := container.NewHBox(text)
+					widget.NewModalPopUp(popUpContent, window.Canvas())
+				}
 				dataSource = a.serialSource
 			}
 			for {
 				datum, err := dataSource.ReadSource()
+				if err != nil {
+					fmt.Println("failed to read source", err)
+					return
+				}
 				select {
 				case <-stop:
 					fmt.Println("stopping data collection")
 					return
 				default:
-					if err != nil {
-						fmt.Println("failed to read source", err)
-						return
-					}
 					dataChannel <- datum
 				}
 			}
@@ -153,7 +160,7 @@ func Main() {
 		fmt.Println("failed to create serial source options")
 	}
 	dummyOptions := appState.DummySourceOptions()
-	controlsPanel := appState.controlsPanel(dataChannel)
+	controlsPanel := appState.controlsPanel(dataChannel, myWindow)
 	dataSourcesPanel := appState.DataSourcesPanel(serialOptions, dummyOptions)
 	options := container.NewGridWithColumns(3, dataSourcesPanel, serialOptions, dummyOptions, controlsPanel)
 	graphContainer := container.NewWithoutLayout()

@@ -5,19 +5,19 @@ import (
 	"time"
 )
 
-type Transform func(index int) float32
+type Function func(index int) float32
 
 type Pseudo struct {
-	index     int
-	delay     time.Duration
-	transform Transform
+	index    int
+	delay    time.Duration
+	function Function
 }
 
-func SinTransform(index int) float32 {
+func SinFunction(index int) float32 {
 	return float32(10 * math.Sin(float64(index)*2*math.Pi/30))
 }
 
-func SquareTransform(index int) float32 {
+func SquareFunction(index int) float32 {
 	period := float64(50)
 	sin := math.Sin(float64(index) * 2 * math.Pi / period)
 	if sin > 0 {
@@ -27,22 +27,22 @@ func SquareTransform(index int) float32 {
 	}
 }
 
-func SawtoothTransform(index int) float32 {
+func SawtoothFunction(index int) float32 {
 	period := 10.0
 	percent := float64(index) / period
 	return 10 * float32(2*(percent-math.Floor(0.5+percent)))
 }
 
-func New(delay time.Duration, transform Transform) *Pseudo {
+func New(delay time.Duration, function Function) *Pseudo {
 	return &Pseudo{
-		index:     0,
-		delay:     delay,
-		transform: transform,
+		index:    0,
+		delay:    delay,
+		function: function,
 	}
 }
 
-func (p *Pseudo) SetTransform(transform Transform) {
-	p.transform = transform
+func (p *Pseudo) SetFunction(function Function) {
+	p.function = function
 }
 
 func (p *Pseudo) ReadSource() (float32, error) {
@@ -50,5 +50,5 @@ func (p *Pseudo) ReadSource() (float32, error) {
 	defer func() {
 		p.index++
 	}()
-	return p.transform(p.index), nil
+	return p.function(p.index), nil
 }
