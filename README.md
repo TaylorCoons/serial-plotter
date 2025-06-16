@@ -59,7 +59,7 @@ This will create a _Serial_Plotter.apk_ that can be installed on an android devi
  - [x] rename pseudo source to dummy source
  - [x] rename pseudo.Transform to pseudo.Function
  - [x] Add clear button to reset data
- - [ ] Have selected options persist when re-opening application (using fyne preferences)
+ - [x] Have selected options persist when re-opening application (using fyne preferences)
  - [ ] Create custom icon instead of using arduinos icon
 
 

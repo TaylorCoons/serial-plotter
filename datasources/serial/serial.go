@@ -23,6 +23,31 @@ func GetPorts() ([]string, error) {
 	return portNames, nil
 }
 
+func BaudOptions() []string {
+	return []string{
+		"300",
+		"600",
+		"750",
+		"1200",
+		"2400",
+		"4800",
+		"9600",
+		"19200",
+		"31250",
+		"38400",
+		"57600",
+		"74880",
+		"115200",
+		"230400",
+		"250000",
+		"460800",
+		"500000",
+		"921600",
+		"1000000",
+		"2000000",
+	}
+}
+
 func (s *SerialPort) OpenPort() error {
 	mode := &serial.Mode{
 		BaudRate: s.baud,
