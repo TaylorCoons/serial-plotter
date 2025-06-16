@@ -11,7 +11,7 @@ Ideas:
 
 
  Stuff TODO:
- - [ ] rename pseudo source to dummy source
+ - [x] rename pseudo source to dummy source
  - [x] rename pseudo.Transform to pseudo.Function
  - [x] Add clear button to reset data
  - [ ] Have selected options persist when re-opening application

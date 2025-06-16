@@ -12,7 +12,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/taylorcoons/serial-plotter/datasources"
-	"github.com/taylorcoons/serial-plotter/datasources/pseudo"
+	"github.com/taylorcoons/serial-plotter/datasources/dummy"
 	"github.com/taylorcoons/serial-plotter/datasources/serial"
 	"github.com/taylorcoons/serial-plotter/gui/graph"
 	"github.com/taylorcoons/serial-plotter/transformers"
@@ -23,7 +23,7 @@ import (
 type appState struct {
 	dataSourceType string
 	serialSource   *serial.SerialPort
-	dummySource    *pseudo.Pseudo
+	dummySource    *dummy.Dummy
 	transform      transformers.Transformer
 	window         fyne.Window
 	data           []float32
@@ -84,10 +84,10 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 }
 
 func (a *appState) DummySourceOptions() *fyne.Container {
-	functionMap := map[string]pseudo.Function{
-		"Sine":     pseudo.SinFunction,
-		"Square":   pseudo.SquareFunction,
-		"Sawtooth": pseudo.SawtoothFunction,
+	functionMap := map[string]dummy.Function{
+		"Sine":     dummy.SinFunction,
+		"Square":   dummy.SquareFunction,
+		"Sawtooth": dummy.SawtoothFunction,
 	}
 	defaultFunctionIndex := 0
 	functionKeys := []string{}
@@ -95,7 +95,7 @@ func (a *appState) DummySourceOptions() *fyne.Container {
 		functionKeys = append(functionKeys, k)
 	}
 	defaultFunction := functionMap[functionKeys[defaultFunctionIndex]]
-	a.dummySource = pseudo.New(time.Millisecond*250, defaultFunction)
+	a.dummySource = dummy.New(time.Millisecond*250, defaultFunction)
 	functionSelect := widget.NewSelect(functionKeys, func(value string) {
 		a.dummySource.SetFunction(functionMap[value])
 		fmt.Println("changed function to: ", value)
