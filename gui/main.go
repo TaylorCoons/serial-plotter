@@ -88,6 +88,7 @@ func (a *appState) DummySourceOptions() *fyne.Container {
 		"Sine":     dummy.SinFunction,
 		"Square":   dummy.SquareFunction,
 		"Sawtooth": dummy.SawtoothFunction,
+		"Constant": dummy.ConstantFunction,
 	}
 	defaultFunctionIndex := 0
 	functionKeys := []string{}

@@ -13,6 +13,10 @@ type Dummy struct {
 	function Function
 }
 
+func ConstantFunction(index int) float32 {
+	return 10
+}
+
 func SinFunction(index int) float32 {
 	return float32(10 * math.Sin(float64(index)*2*math.Pi/30))
 }
