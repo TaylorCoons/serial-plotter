@@ -165,12 +165,20 @@ func (a *appState) CloseDataSource() error {
 
 func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *fyne.Container {
 	stop := make(chan int)
+	var startButtonContainer *fyne.Container
+	var stopButtonContainer *fyne.Container
 	stopButton := widget.NewButton("Stop", func() {
 		fmt.Println("Stop pressed")
 		stop <- 0
 	})
 	startButton := widget.NewButton("Start", func() {
+		startButtonContainer.Hide()
+		stopButtonContainer.Show()
 		go func() {
+			defer fyne.Do(func() {
+				startButtonContainer.Show()
+				stopButtonContainer.Hide()
+			})
 			dataSource, err := a.InitializeSource()
 			if err != nil {
 				fmt.Println("Failed to initialize data source", err)
@@ -198,7 +206,13 @@ func (a *appState) ControlsPanel(dataChannel chan float32, window fyne.Window) *
 		}()
 		fmt.Println("Start pressed")
 	})
-	return container.NewVBox(startButton, stopButton)
+	startButton.Importance = widget.LowImportance
+	stopButton.Importance = widget.LowImportance
+	startButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{0, 255, 0, 255}), startButton)
+	stopButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{255, 0, 0, 255}), stopButton)
+	stopButtonContainer.Hide()
+
+	return container.NewStack(startButtonContainer, stopButtonContainer)
 }
 
 func Main() {
