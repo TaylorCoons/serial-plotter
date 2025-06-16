@@ -45,7 +45,6 @@ func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummy
 		}
 		a.app.Preferences().SetString(preference.DataSource.String(), value)
 		a.dataSourceType = value
-		fmt.Println("datasourcetype set to: ", value)
 	})
 	selected := a.app.Preferences().StringWithFallback(preference.DataSource.String(), "Dummy")
 	dataSourcesSelect.SetSelected(selected)
@@ -74,7 +73,6 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 	portSelect := widget.NewSelect(ports, func(value string) {
 		a.serialSource.SetPortName(value)
 		a.app.Preferences().SetString(preference.PortName.String(), value)
-		fmt.Println("port set to ", value)
 	})
 	if defaultPort != "" {
 		portSelect.SetSelected(defaultPort)
@@ -89,7 +87,6 @@ func (a *appState) SerialSourceOptions() (*fyne.Container, error) {
 		}
 		a.serialSource.SetBaud(baudValue)
 		a.app.Preferences().SetString(preference.Baud.String(), value)
-		fmt.Println("baud set to ", value)
 	})
 	baudSelect.SetSelected(defaultBaud)
 	serialOptions := container.NewVBox(portSelect, baudSelect)
@@ -112,7 +109,6 @@ func (a *appState) DummySourceOptions() *fyne.Container {
 	functionSelect := widget.NewSelect(functionKeys, func(value string) {
 		a.dummySource.SetFunction(functionMap[value])
 		a.app.Preferences().SetString(preference.Function.String(), value)
-		fmt.Println("changed function to: ", value)
 	})
 	functionSelect.SetSelected(selectedFunction)
 	return container.NewVBox(functionSelect)
@@ -154,7 +150,6 @@ func (a *appState) InitializeSource() (datasources.DataSourcer, error) {
 	case "Dummy":
 		return a.dummySource, nil
 	case "Serial":
-		fmt.Println("Opening serial port")
 		err := a.serialSource.OpenPort()
 		if err != nil {
 			fmt.Println("error opening port ", err)
@@ -183,7 +178,6 @@ func (a *appState) ControlsPanel(dataChannel chan float32, clearChannel chan int
 	var startButtonContainer *fyne.Container
 	var stopButtonContainer *fyne.Container
 	stopButton := widget.NewButton("Stop", func() {
-		fmt.Println("Stop pressed")
 		stop <- 0
 	})
 	startButton := widget.NewButton("Start", func() {
@@ -202,13 +196,15 @@ func (a *appState) ControlsPanel(dataChannel chan float32, clearChannel chan int
 			for {
 				datum, err := dataSource.ReadSource()
 				if err != nil {
-					fmt.Println("failed to read source", err)
+					if perr, ok := err.(*serial.ParseError); ok {
+						fmt.Println("failed to parse source, skipping", perr)
+						continue
+					}
 					ErrorModal(fmt.Sprintf("Failed to read data source %s", err), a.window)
 					return
 				}
 				select {
 				case <-stop:
-					fmt.Println("stopping data collection")
 					err := a.CloseDataSource()
 					if err != nil {
 						fmt.Println("failed to close data source", err)
@@ -219,7 +215,6 @@ func (a *appState) ControlsPanel(dataChannel chan float32, clearChannel chan int
 				}
 			}
 		}()
-		fmt.Println("Start pressed")
 	})
 	clearButton := widget.NewButton("Clear", func() {
 		clearChannel <- 0
@@ -264,10 +259,8 @@ func Main() {
 		for {
 			select {
 			case value := <-dataChannel:
-				fmt.Println("Appending data")
 				appState.data = append(appState.data, appState.transform.Compute(appState.data, value))
 			case <-clearChannel:
-				fmt.Println("Clearing data")
 				appState.data = []float32{}
 			}
 			graphStruct.Update(graphContainer, appState.data)
