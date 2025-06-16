@@ -1,6 +1,8 @@
 
 # Serial Plotter
 
+![Demo](./documentation/gifs/Screencast.gif)
+
 ## Purpose
 
 The arduino serial plotter for the newer versions has had a sever regression including:
