@@ -21,6 +21,15 @@ func SinFunction(index int) float32 {
 	return float32(10 * math.Sin(float64(index)*2*math.Pi/30))
 }
 
+func XSinXFunction(index int) float32 {
+	x := float64(index)
+	return float32(0.25 * x * math.Sin(x*math.Pi/15))
+}
+
+func Neg100X(index int) float32 {
+	return -100 * float32(index)
+}
+
 func SquareFunction(index int) float32 {
 	period := float64(50)
 	sin := math.Sin(float64(index) * 2 * math.Pi / period)
@@ -43,6 +52,10 @@ func New(delay time.Duration, function Function) *Dummy {
 		delay:    delay,
 		function: function,
 	}
+}
+
+func (p *Dummy) ResetIndex() {
+	p.index = 0
 }
 
 func (p *Dummy) SetFunction(function Function) {
