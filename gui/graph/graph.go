@@ -123,7 +123,7 @@ func (g *GraphStruct) addYTicks(size *fyne.Size, yRange *axisRange) {
 		yValue := linearMap(float32(index), 0, float32(yRange.numTicks)-1, tickMin, tickMax)
 		yLabel := canvas.NewText(strconv.Itoa(int(math.Round(float64(yValue)))), color.White)
 		tickHeight := linearMap(yValue, yRange.realizedMin, yRange.realizedMax, size.Height, 0)
-		yLabel.Move(fyne.NewPos(5, tickHeight))
+		yLabel.Move(fyne.NewPos(7, tickHeight-yLabel.MinSize().Height/2))
 		// TODO: Make this tick length relative
 		yTick.Position1 = fyne.NewPos(0, tickHeight)
 		yTick.Position2 = fyne.NewPos(5, tickHeight)
