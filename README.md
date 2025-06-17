@@ -53,6 +53,7 @@ This will create a _Serial_Plotter.apk_ that can be installed on an android devi
  - [ ] add gauges for one dimensional values
  - [ ] add raw value displays for things measurements like temperature
  - [ ] add more filters
+ - [ ] make channel triggers so plot resets on rising/falling signal for periodic inputs
 
 
 ## Items that need done but aren't quite bugs

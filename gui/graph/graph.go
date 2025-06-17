@@ -41,7 +41,7 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 
 	g.addXTicks(&size, &yRange, data)
 
-	g.addYTicks(&size, &yRange, data)
+	g.addYTicks(&size, &yRange)
 
 	g.addLines(&size, &yRange, data)
 
@@ -61,8 +61,8 @@ func (g *GraphStruct) createYRange(size *fyne.Size, data []float32) axisRange {
 		yMagnitude = yMagnitude / 10
 		orderMagnitude = orderMagnitude * 10
 	}
-	realizedMin := yMin - float32(orderMagnitude)
-	realizedMax := yMax + float32(orderMagnitude)
+	realizedMin := yMin - float32(orderMagnitude)/2
+	realizedMax := yMax + float32(orderMagnitude)/2
 	zeroHeight := linearMap(0, realizedMin, realizedMax, size.Height, 0)
 	return axisRange{
 		min:         yMin,
@@ -70,7 +70,7 @@ func (g *GraphStruct) createYRange(size *fyne.Size, data []float32) axisRange {
 		realizedMin: realizedMin,
 		realizedMax: realizedMax,
 		tickSize:    float32(orderMagnitude),
-		numTicks:    int(math.Abs(float64(realizedMax-realizedMin)) / float64(orderMagnitude)),
+		numTicks:    int(math.Round(math.Abs(float64(yMax-yMin))/float64(orderMagnitude))) + 1,
 		zeroHeight:  zeroHeight,
 	}
 }
@@ -113,16 +113,24 @@ func (g *GraphStruct) addXTicks(size *fyne.Size, yRange *axisRange, data []float
 	}
 }
 
-func (g *GraphStruct) addYTicks(size *fyne.Size, yRange *axisRange, data []float32) {
+func (g *GraphStruct) addYTicks(size *fyne.Size, yRange *axisRange) {
+	g.yLabels = []*canvas.Text{}
 	g.yTicks = []*canvas.Line{}
 	for index := 0; index < yRange.numTicks; index++ {
 		yTick := &canvas.Line{}
+		tickMin := float32(math.Round(float64(math.Round(float64(yRange.min/yRange.tickSize)))) * float64(yRange.tickSize))
+		tickMax := float32(math.Round(float64(math.Round(float64(yRange.max/yRange.tickSize)))) * float64(yRange.tickSize))
+		yValue := linearMap(float32(index), 0, float32(yRange.numTicks)-1, tickMin, tickMax)
+		yLabel := canvas.NewText(strconv.Itoa(int(math.Round(float64(yValue)))), color.White)
+		tickHeight := linearMap(yValue, yRange.realizedMin, yRange.realizedMax, size.Height, 0)
+		yLabel.Move(fyne.NewPos(5, tickHeight))
 		// TODO: Make this tick length relative
-		yTick.Position1 = fyne.NewPos(0, linearMap(float32(index), 0, float32(yRange.numTicks), size.Height, 0))
-		yTick.Position2 = fyne.NewPos(5, linearMap(float32(index), 0, float32(yRange.numTicks), size.Height, 0))
+		yTick.Position1 = fyne.NewPos(0, tickHeight)
+		yTick.Position2 = fyne.NewPos(5, tickHeight)
 		yTick.StrokeColor = color.White
 		yTick.StrokeWidth = 2
 		g.yTicks = append(g.yTicks, yTick)
+		g.yLabels = append(g.yLabels, yLabel)
 	}
 }
 
@@ -151,6 +159,9 @@ func (g *GraphStruct) addGraphObjects(graphContainer *fyne.Container) {
 	}
 	for _, yTick := range g.yTicks {
 		graphContainer.Objects = append(graphContainer.Objects, yTick)
+	}
+	for _, yLabel := range g.yLabels {
+		graphContainer.Objects = append(graphContainer.Objects, yLabel)
 	}
 	for _, line := range g.lines {
 		graphContainer.Objects = append(graphContainer.Objects, line)
