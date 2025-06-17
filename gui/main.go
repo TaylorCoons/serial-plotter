@@ -99,6 +99,8 @@ func (a *appState) DummySourceOptions() *fyne.Container {
 		"Square":   dummy.SquareFunction,
 		"Sawtooth": dummy.SawtoothFunction,
 		"Constant": dummy.ConstantFunction,
+		"xSin(x)":  dummy.XSinXFunction,
+		"-100x":    dummy.Neg100X,
 	}
 	functionKeys := []string{}
 	for k := range functionMap {
@@ -148,6 +150,7 @@ func ErrorModal(message string, window fyne.Window) {
 func (a *appState) InitializeSource() (datasources.DataSourcer, error) {
 	switch a.dataSourceType {
 	case "Dummy":
+		a.dummySource.ResetIndex()
 		return a.dummySource, nil
 	case "Serial":
 		err := a.serialSource.OpenPort()
