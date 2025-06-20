@@ -1,6 +1,8 @@
 module github.com/taylorcoons/serial-plotter
 
-go 1.18
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	fyne.io/fyne v1.4.3
@@ -39,9 +41,10 @@ require (
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	golang.org/x/example/hello v0.0.0-20250605160450-8b405629c4a5 // indirect
-	golang.org/x/image v0.24.0 // indirect
+	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+	gonum.org/v1/gonum v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
