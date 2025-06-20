@@ -8,6 +8,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/theme"
 )
 
 type GraphStruct struct {
@@ -31,13 +32,25 @@ type axisRange struct {
 	tickLength  float32
 }
 
+func foregroundColor() color.Color {
+	return theme.DefaultTheme().Color(theme.ColorNameForeground, theme.VariantDark)
+}
+
+func backgroundColor() color.Color {
+	return theme.DefaultTheme().Color(theme.ColorNameBackground, theme.VariantDark)
+}
+
+func primaryColor() color.Color {
+	return theme.DefaultTheme().Color(theme.ColorNamePrimary, theme.VariantDark)
+}
+
 func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, data []float32) {
 	g.xAxis = &canvas.Line{}
 	g.yAxis = &canvas.Line{}
 	g.xAxis.StrokeWidth = 2
-	g.xAxis.StrokeColor = color.White
+	g.xAxis.StrokeColor = foregroundColor()
 	g.yAxis.StrokeWidth = 2
-	g.yAxis.StrokeColor = color.White
+	g.yAxis.StrokeColor = foregroundColor()
 
 	axisRange := g.createAxisRange(&size, data)
 
@@ -54,8 +67,8 @@ func (g *GraphStruct) render(graphContainer *fyne.Container, size fyne.Size, dat
 
 func calcMaxTextWidth(a, b float32) float32 {
 	// TODO: Make this function generic to take variadic arguments of float32
-	minText := canvas.NewText(strconv.Itoa(int(a)), color.White)
-	maxText := canvas.NewText(strconv.Itoa(int(b)), color.White)
+	minText := canvas.NewText(strconv.Itoa(int(a)), foregroundColor())
+	maxText := canvas.NewText(strconv.Itoa(int(b)), foregroundColor())
 	return float32(math.Max(float64(minText.MinSize().Width), float64(maxText.MinSize().Width)))
 }
 
@@ -127,7 +140,7 @@ func (g *GraphStruct) addXTicks(size *fyne.Size, axisRange *axisRange, data []fl
 		xLabel.Move(positionXLabel(index, len(data), xLabel, size, axisRange))
 		xTick.Position1 = fyne.NewPos(axisRange.yAxisOffset+float32(index)*size.Width/float32(len(data)), axisRange.zeroHeight+(axisRange.tickLength/2))
 		xTick.Position2 = fyne.NewPos(axisRange.yAxisOffset+float32(index)*size.Width/float32(len(data)), axisRange.zeroHeight-(axisRange.tickLength/2))
-		xTick.StrokeColor = color.White
+		xTick.StrokeColor = foregroundColor()
 		xTick.StrokeWidth = 2
 		// Skip 0 label
 		if index != 0 {
@@ -150,7 +163,7 @@ func (g *GraphStruct) addYTicks(size *fyne.Size, axisRange *axisRange) {
 		yLabel.Move(fyne.NewPos(0, tickHeight-yLabel.MinSize().Height/2))
 		yTick.Position1 = fyne.NewPos(axisRange.yAxisOffset+axisRange.tickLength, tickHeight)
 		yTick.Position2 = fyne.NewPos(axisRange.yAxisOffset, tickHeight)
-		yTick.StrokeColor = color.White
+		yTick.StrokeColor = foregroundColor()
 		yTick.StrokeWidth = 2
 		g.yTicks = append(g.yTicks, yTick)
 		g.yLabels = append(g.yLabels, yLabel)
@@ -166,7 +179,7 @@ func (g *GraphStruct) addLines(size *fyne.Size, axisRange *axisRange, data []flo
 		line := &canvas.Line{}
 		line.Position1 = fyne.NewPos(axisRange.yAxisOffset+linearMap(float32(index-1), 0, float32(len(data)), 0, size.Width), linearMap(data[index-1], axisRange.realizedMin, axisRange.realizedMax, size.Height, 0))
 		line.Position2 = fyne.NewPos(axisRange.yAxisOffset+linearMap(float32(index), 0, float32(len(data)), 0, size.Width), linearMap(data[index], axisRange.realizedMin, axisRange.realizedMax, size.Height, 0))
-		line.StrokeColor = color.White
+		line.StrokeColor = primaryColor()
 		line.StrokeWidth = 1
 		g.lines = append(g.lines, line)
 	}
