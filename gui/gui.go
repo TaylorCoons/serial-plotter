@@ -18,6 +18,7 @@ import (
 	"github.com/taylorcoons/serial-plotter/gui/graph"
 	"github.com/taylorcoons/serial-plotter/gui/preference"
 	"github.com/taylorcoons/serial-plotter/transformers"
+	"github.com/taylorcoons/serial-plotter/transformers/gaussian"
 	"github.com/taylorcoons/serial-plotter/transformers/passthrough"
 	"github.com/taylorcoons/serial-plotter/transformers/sma"
 )
@@ -120,6 +121,7 @@ func (a *appState) TransformOptions() *fyne.Container {
 	transformMap := map[string]transformers.Transformer{
 		"None":                  passthrough.New(),
 		"Simple Moving Average": sma.New(3),
+		"Guassian Noise":        gaussian.New(0, 0.5),
 	}
 	transformKeys := []string{}
 	for k := range transformMap {
