@@ -1,16 +1,21 @@
 package gui
 
 import (
+	"encoding/csv"
 	"fmt"
 	"image/color"
+	"io"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"github.com/taylorcoons/serial-plotter/datasources"
 	"github.com/taylorcoons/serial-plotter/datasources/dummy"
@@ -31,6 +36,7 @@ type appState struct {
 	window         fyne.Window
 	data           []float32
 	app            fyne.App
+	dataMutex      sync.RWMutex
 }
 
 func (a *appState) DataSourcesPanel(serialSourceContainer *fyne.Container, dummySourceContainer *fyne.Container) *fyne.Container {
@@ -224,13 +230,48 @@ func (a *appState) ControlsPanel(dataChannel chan float32, clearChannel chan int
 	clearButton := widget.NewButton("Clear", func() {
 		clearChannel <- 0
 	})
+	saveButton := widget.NewButton("Save", func() {
+		// Take a snapshot at the moment Save is requested
+		a.dataMutex.RLock()
+		snapshot := append([]float32(nil), a.data...)
+		a.dataMutex.RUnlock()
+
+		if len(snapshot) == 0 {
+			ErrorModal("No data to save.", a.window)
+			return
+		}
+
+		file := dialog.NewFileSave(func(uwc fyne.URIWriteCloser, err error) {
+			if err != nil {
+				ErrorModal(fmt.Sprintf("Save failed: %v", err), a.window)
+				return
+			}
+			if uwc == nil {
+				return // user cancelled
+			}
+			// Write in a separate goroutine to avoid blocking UI
+			go func(wc fyne.URIWriteCloser, data []float32) {
+				defer wc.Close()
+				if werr := exportDataToCSV(data, wc); werr != nil {
+					ErrorModal(fmt.Sprintf("Save failed: %v", werr), a.window)
+					return
+				}
+				fyne.Do(func() {
+					ErrorModal(fmt.Sprintf("Saved %d samples.", len(data)), a.window)
+				})
+			}(uwc, snapshot)
+		}, a.window)
+		file.SetFilter(storage.NewExtensionFileFilter([]string{".csv"}))
+		file.SetFileName(time.Now().Format("serial_data_20060102_150405.csv"))
+		file.Show()
+	})
 	startButton.Importance = widget.LowImportance
 	stopButton.Importance = widget.LowImportance
 	startButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{0, 255, 0, 127}), startButton)
 	stopButtonContainer = container.NewStack(canvas.NewRectangle(color.RGBA{255, 0, 0, 127}), stopButton)
 	stopButtonContainer.Hide()
 
-	return container.NewVBox(startButtonContainer, stopButtonContainer, clearButton)
+	return container.NewVBox(startButtonContainer, stopButtonContainer, clearButton, saveButton)
 }
 
 func Main() {
@@ -264,15 +305,39 @@ func Main() {
 		for {
 			select {
 			case value := <-dataChannel:
-				appState.data = append(appState.data, appState.transform.Compute(appState.data, value))
+				appState.dataMutex.Lock()
+				computed := appState.transform.Compute(appState.data, value)
+				appState.data = append(appState.data, computed)
+				appState.dataMutex.Unlock()
 			case <-clearChannel:
+				appState.dataMutex.Lock()
 				appState.data = []float32{}
+				appState.dataMutex.Unlock()
 			}
-			graphStruct.Update(graphContainer, appState.data)
+			// Render using a snapshot to avoid races
+			appState.dataMutex.RLock()
+			snapshot := append([]float32(nil), appState.data...)
+			appState.dataMutex.RUnlock()
+			graphStruct.Update(graphContainer, snapshot)
 			fyne.Do(func() {
 				graphContainer.Refresh()
 			})
 		}
 	}()
 	window.ShowAndRun()
+}
+
+// exportDataToCSV writes the provided data to the writer in CSV format with header: index,value
+func exportDataToCSV(data []float32, writer io.Writer) error {
+	file := csv.NewWriter(writer)
+	if err := file.Write([]string{"index", "value"}); err != nil {
+		return err
+	}
+	for index, value := range data {
+		if err := file.Write([]string{strconv.Itoa(index), strconv.FormatFloat(float64(value), 'f', -1, 32)}); err != nil {
+			return err
+		}
+	}
+	file.Flush()
+	return file.Error()
 }
